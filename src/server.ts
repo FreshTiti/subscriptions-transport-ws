@@ -87,6 +87,7 @@ export interface ServerOptions {
   onOperationComplete?: Function;
   onConnect?: Function;
   onDisconnect?: Function;
+  persistedQueries?: Function;
   keepAlive?: number;
 }
 
@@ -97,6 +98,7 @@ export class SubscriptionServer {
   private onOperationComplete: Function;
   private onConnect: Function;
   private onDisconnect: Function;
+  private persistedQueries: Function;
 
   private wsServer: WebSocket.Server;
   private execute: ExecuteFunction;
@@ -113,7 +115,7 @@ export class SubscriptionServer {
 
   constructor(options: ServerOptions, socketOptionsOrServer: WebSocket.ServerOptions | WebSocket.Server) {
     const {
-      onOperation, onOperationComplete, onConnect, onDisconnect, keepAlive,
+      onOperation, onOperationComplete, onConnect, onDisconnect, keepAlive, persistedQueries
     } = options;
 
     this.specifiedRules = options.validationRules || specifiedRules;
@@ -124,6 +126,7 @@ export class SubscriptionServer {
     this.onConnect = onConnect;
     this.onDisconnect = onDisconnect;
     this.keepAlive = keepAlive;
+    this.persistedQueries = persistedQueries;
 
     if (isWebSocketServer(socketOptionsOrServer)) {
       this.wsServer = <WebSocket.Server>socketOptionsOrServer;
@@ -337,9 +340,17 @@ export class SubscriptionServer {
                 throw new Error(error);
               }
 
-              const document = typeof baseParams.query !== 'string' ? baseParams.query : parse(baseParams.query);
+              let document = null;
+              let validationErrors = null;
               let executionPromise: Promise<AsyncIterator<ExecutionResult> | ExecutionResult>;
-              const validationErrors = validate(this.schema, document, this.specifiedRules);
+
+              if (parsedMessage.payload.id && this.persistedQueries) {
+                document = this.persistedQueries(parsedMessage.payload.id);
+              }
+              if (!document) {
+                document = typeof baseParams.query !== 'string' ? baseParams.query : parse(baseParams.query);
+                validationErrors = validate(this.schema, document, this.specifiedRules);
+              }
 
               if ( validationErrors.length > 0 ) {
                 executionPromise = Promise.resolve({ errors: validationErrors });
