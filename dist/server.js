@@ -183,7 +183,7 @@ var SubscriptionServer = (function () {
                                 throw new Error(error);
                             }
                             var document = null;
-                            var validationErrors = null;
+                            var validationErrors = [];
                             var executionPromise;
                             if (parsedMessage.payload.id && _this.persistedQueries) {
                                 document = _this.persistedQueries(parsedMessage.payload.id);

@@ -12,6 +12,7 @@ import {
   ValidationContext,
   specifiedRules,
   GraphQLFieldResolver,
+  GraphQLError
 } from 'graphql';
 import { createEmptyIterable } from './utils/empty-iterable';
 import { createAsyncIterator, forAwaitEach, isAsyncIterable } from 'iterall';
@@ -341,7 +342,7 @@ export class SubscriptionServer {
               }
 
               let document = null;
-              let validationErrors = null;
+              let validationErrors: ReadonlyArray<GraphQLError> = [];
               let executionPromise: Promise<AsyncIterator<ExecutionResult> | ExecutionResult>;
 
               if (parsedMessage.payload.id && this.persistedQueries) {
